@@ -25,12 +25,22 @@ namespace T_BookStore.Repository
 
         public async Task DeleteBookAsync(int id)
         {
-            
+            var deleteBook = _context.Books!.SingleOrDefault(x => x.Id == id);
+            if(deleteBook != null)
+            {
+                _context.Books!.Remove(deleteBook);
+                await _context.SaveChangesAsync();
+            }
         }
 
-        public Task DeleteBookAsync(int id, BookModel model)
+        public async Task UpdateBookAsync(int id, BookModel model)
         {
-            throw new NotImplementedException();
+            if(id == model.Id)
+            {
+                var updateBook = _mapper.Map<Book> (model);
+                _context.Books!.Update(updateBook);
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task<List<BookModel>> GetAllBookAsync()
@@ -41,7 +51,7 @@ namespace T_BookStore.Repository
 
         public async Task<BookModel> GetBookAsync(int id)
         {
-            var book = await _context.Books.FindAsync();
+            var book = await _context.Books!.FindAsync(id);
             return _mapper.Map<BookModel>(book);
         }
     }
