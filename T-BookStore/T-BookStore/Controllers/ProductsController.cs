@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using T_BookStore.Models;
 using T_BookStore.Repository;
@@ -37,6 +38,7 @@ namespace T_BookStore.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> AddNewBook(BookModel model)
         {
             try
@@ -52,6 +54,7 @@ namespace T_BookStore.Controllers
         }   
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdateBook(int id, [FromBody] BookModel model)
         {
             if(id != model.Id)
