@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using T_BookStore.Data;
+using T_BookStore.Helpers;
 
 namespace T_BookStore.Controllers
 {
@@ -22,6 +24,7 @@ namespace T_BookStore.Controllers
 
         // GET: api/Books
         [HttpGet]
+        [Authorize(Roles = ApplicationRole.Customer)]
         public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
           if (_context.Books == null)
@@ -33,11 +36,12 @@ namespace T_BookStore.Controllers
 
         // GET: api/Books/5
         [HttpGet("{id}")]
+        [Authorize(Roles = ApplicationRole.Admin)]
         public async Task<ActionResult<Book>> GetBook(int id)
         {
           if (_context.Books == null)
           {
-              return NotFound();
+              return NotFound();    
           }
             var book = await _context.Books.FindAsync(id);
 

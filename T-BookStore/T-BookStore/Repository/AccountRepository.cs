@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using T_BookStore.Data;
+using T_BookStore.Helpers;
 using T_BookStore.Models;
 using JwtRegisteredClaimNames = Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames;
 
@@ -13,20 +14,23 @@ namespace T_BookStore.Repository
     public class AccountRepository : IAccountRepository
     {
         private readonly IConfiguration configuration;
+        private readonly RoleManager<IdentityRole> roleManager;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly SignInManager<ApplicationUser> signInManager;
 
         public AccountRepository(UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager, IConfiguration configuration)
+            SignInManager<ApplicationUser> signInManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.configuration = configuration;
+            this.roleManager = roleManager;
         }
         public async Task<string> SignInAsync(SignInModel model)
         {
-            var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
-            if (!result.Succeeded)
+            var user = await userManager.FindByEmailAsync(model.Email);
+            var passwordValid = await userManager.CheckPasswordAsync(user, model.Password);
+            if(user == null || !passwordValid)
             {
                 return String.Empty;
             }
@@ -36,6 +40,12 @@ namespace T_BookStore.Repository
                 new Claim(ClaimTypes.Email, model.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            var userRoles = await userManager.GetRolesAsync(user);
+            foreach(var role in userRoles)
+            {
+                authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+            }
 
             var authenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"]));
 
@@ -58,7 +68,20 @@ namespace T_BookStore.Repository
                 Email = model.Email,
                 UserName = model.Email,
             };
-            return await userManager.CreateAsync(user, model.Password);
+            var result = await userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                //Check Customer role is exist
+                if(!await roleManager.RoleExistsAsync(ApplicationRole.Customer))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(ApplicationRole.Customer));
+                }
+
+                await userManager.AddToRoleAsync(user, ApplicationRole.Customer);
+            }
+
+            return result;
         }
     }
 }
